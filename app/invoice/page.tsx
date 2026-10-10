@@ -102,7 +102,7 @@ export default function InvoicesPage() {
     const controller = new AbortController();
     setLoading(true);
     setListError("");
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/invoices?page=${page}&pageSize=20`, { cache: "no-store", signal: controller.signal })
+    fetch(`/api/v1/invoices?page=${page}&pageSize=20`, { cache: "no-store", signal: controller.signal })
       .then(async (response) => {
         if (!response.ok) throw new Error(await errorMessage(response));
         return response.json() as Promise<PageResult>;
@@ -126,7 +126,7 @@ export default function InvoicesPage() {
     setActionError("");
     setNotice("");
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/invoices/${encodeURIComponent(invoiceId)}`, { cache: "no-store" });
+      const response = await fetch(`/api/v1/invoices/${encodeURIComponent(invoiceId)}`, { cache: "no-store" });
       if (!response.ok) throw new Error(await errorMessage(response));
       const result = await response.json() as { data: Invoice };
       setSelected(result.data);
@@ -142,7 +142,7 @@ export default function InvoicesPage() {
     setActionError("");
     setNotice("");
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/invoices/${encodeURIComponent(invoice.id)}/send`, {
+      const response = await fetch(`/api/v1/invoices/${encodeURIComponent(invoice.id)}/send`, {
         method: "POST",
         headers: { "Idempotency-Key": crypto.randomUUID() },
       });

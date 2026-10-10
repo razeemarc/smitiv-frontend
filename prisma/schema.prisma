@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Customer {
+  id              String   @id @default(uuid()) @db.Uuid
+  customerName    String   @map("customer_name") @db.VarChar(150)
+  email           String   @unique @db.VarChar(254)
+  phoneNumber     String   @map("phone_number") @db.VarChar(30)
+  customerAddress String   @map("customer_address") @db.VarChar(500)
+  billingAddress  String   @map("billing_address") @db.VarChar(500)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  workOrders      WorkOrder[]
+
+  @@map("customers")
+}
+
+enum WorkOrderStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model WorkOrder {
+  id              String          @id @default(uuid()) @db.Uuid
+  customerId      String          @map("customer_id") @db.Uuid
+  service         String          @db.VarChar(250)
+  quantity        Int
+  unitPrice       Decimal         @map("unit_price") @db.Decimal(11, 2)
+  totalAmount     Decimal         @map("total_amount") @db.Decimal(18, 2)
+  serviceAddress  String          @map("service_address") @db.VarChar(500)
+  billingAddress String          @map("billing_address") @db.VarChar(500)
+  serviceDate     DateTime        @map("service_date") @db.Date
+  status          WorkOrderStatus @default(PENDING)
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+  customer        Customer        @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  invoice         Invoice?
+
+  @@index([customerId, createdAt(sort: Desc)])
+  @@index([serviceDate, status])
+  @@map("work_orders")
+}
+
+model Invoice {
+  id            String    @id @default(uuid()) @db.Uuid
+  invoiceNumber Int       @unique @default(autoincrement()) @map("invoice_number")
+  workOrderId   String    @unique @map("work_order_id") @db.Uuid
+  subtotal      Decimal   @db.Decimal(18, 2)
+  gstAmount     Decimal   @map("gst_amount") @db.Decimal(18, 2)
+  grandTotal    Decimal   @map("grand_total") @db.Decimal(18, 2)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  workOrder     WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Restrict)
+
+  @@map("invoices")
+}

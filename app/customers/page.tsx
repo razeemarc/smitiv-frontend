@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, RefreshCw, Search, Users } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface Customer {
@@ -20,27 +19,6 @@ interface Customer {
   updatedAt: string;
 }
 
-interface CustomerForm {
-  customerName: string;
-  email: string;
-  phoneNumber: string;
-  customerAddress: string;
-  billingAddress: string;
-}
-
-interface CustomerPage {
-  data: Customer[];
-  pagination: { total: number; totalPages: number };
-}
-
-const emptyForm: CustomerForm = {
-  customerName: "",
-  email: "",
-  phoneNumber: "",
-  customerAddress: "",
-  billingAddress: "",
-};
-
 async function responseMessage(response: Response): Promise<string> {
   try {
     const body = await response.json();
@@ -51,21 +29,18 @@ async function responseMessage(response: Response): Promise<string> {
 }
 
 export default function CustomersPage() {
+  const router = useRouter();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [listError, setListError] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState<CustomerForm>(emptyForm);
-  const [formError, setFormError] = useState("");
-  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
     setListError("");
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/customers`, { cache: "no-store", signal: controller.signal })
+    fetch("/api/v1/customers", { cache: "no-store", signal: controller.signal })
       .then(async (response) => {
         if (!response.ok) throw new Error(await responseMessage(response));
         return response.json() as Promise<{ data: Customer[] }>;
@@ -91,37 +66,6 @@ export default function CustomersPage() {
     );
   }, [customers, search]);
 
-  function openCreate() {
-    setForm(emptyForm);
-    setFormError("");
-    setDialogOpen(true);
-  }
-
-  async function createCustomer(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (creating) return;
-    setCreating(true);
-    setFormError("");
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/customers`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      if (!response.ok) throw new Error(await responseMessage(response));
-      const result = await response.json() as { data: Customer };
-      setCustomers((current) => [result.data, ...current]);
-      setDialogOpen(false);
-      setForm(emptyForm);
-    } catch (error) {
-      setFormError(error instanceof Error ? error.message : "Unable to create the customer.");
-    } finally {
-      setCreating(false);
-    }
-  }
-
-  const inputClass = "h-10 rounded-lg";
-
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-5 py-8 md:px-8">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -129,7 +73,7 @@ export default function CustomersPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Customers</h1>
           <p className="mt-1 text-sm text-muted-foreground">Manage your customers and their contact and address details.</p>
         </div>
-        <Button onClick={openCreate}>
+        <Button onClick={() => router.push("/customers/new")}>
           <Plus aria-hidden="true" /> Add customer
         </Button>
       </header>
@@ -194,43 +138,6 @@ export default function CustomersPage() {
         </Table>
       </section>
 
-      <Dialog open={dialogOpen} onOpenChange={(open) => !creating && setDialogOpen(open)}>
-        <DialogContent>
-          <form onSubmit={createCustomer} className="space-y-5">
-            <DialogHeader>
-              <DialogTitle>Add customer</DialogTitle>
-              <DialogDescription>Enter the customer details. All fields are required.</DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="space-y-2 text-sm font-medium">
-                Customer name <span className="text-destructive">*</span>
-                <Input className={inputClass} required maxLength={150} value={form.customerName} onChange={(event) => setForm({ ...form, customerName: event.target.value })} />
-              </label>
-              <label className="space-y-2 text-sm font-medium">
-                Email <span className="text-destructive">*</span>
-                <Input className={inputClass} type="email" required maxLength={254} value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} />
-              </label>
-              <label className="space-y-2 text-sm font-medium sm:col-span-2">
-                Phone number <span className="text-destructive">*</span>
-                <Input className={inputClass} type="tel" required minLength={7} maxLength={30} value={form.phoneNumber} onChange={(event) => setForm({ ...form, phoneNumber: event.target.value })} />
-              </label>
-              <label className="space-y-2 text-sm font-medium sm:col-span-2">
-                Customer address <span className="text-destructive">*</span>
-                <Input className={inputClass} required maxLength={500} value={form.customerAddress} onChange={(event) => setForm({ ...form, customerAddress: event.target.value })} />
-              </label>
-              <label className="space-y-2 text-sm font-medium sm:col-span-2">
-                Billing address <span className="text-destructive">*</span>
-                <Input className={inputClass} required maxLength={500} value={form.billingAddress} onChange={(event) => setForm({ ...form, billingAddress: event.target.value })} />
-              </label>
-            </div>
-            {formError && <p role="alert" className="text-sm text-destructive">{formError}</p>}
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} disabled={creating}>Cancel</Button>
-              <Button type="submit" disabled={creating}>{creating ? "Creating…" : "Create customer"}</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
     </main>
   );
 }
