@@ -25,6 +25,8 @@ const navigation = [
 export function AppSidebar() {
   const pathname = usePathname();
 
+  if (pathname === "/") return null;
+
   return (
     <>
       <Sidebar collapsible="icon" variant="sidebar" className="border-sidebar-border">
