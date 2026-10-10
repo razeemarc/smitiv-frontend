@@ -1,9 +1,5 @@
 import "dotenv/config";
-import { resolve } from "node:path";
-import { config as loadEnv } from "dotenv";
 import { defineConfig } from "prisma/config";
-
-loadEnv({ path: resolve(process.cwd(), "../../backend/.env"), override: false });
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
